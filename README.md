@@ -1,1 +1,2 @@
 # NicChatServerV2
+This is the server that the client uses to connect to. This server uses both RSA and AES encryption to ensure that the messages are kept private. The server uses a special code sequence in order to differenciate the different data types. Author: Nic Ballesteros
