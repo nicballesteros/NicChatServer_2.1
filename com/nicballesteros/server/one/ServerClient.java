@@ -26,11 +26,18 @@ public class ServerClient {
     private String receivedUsername;
     private String receivedPassword;
 
+    private String hashedPass;
+
     //TODO change the constructor so that it accepts an InetAddress instead of string
 
-    public ServerClient(int ID, String name){
+    public ServerClient(int ID, String name, String hashedPass){
         this.ID = ID;
         this.name = name;
+        this.isConnected = false;
+        this.recipient = -1;
+        this.receivedUsername = "";
+        this.receivedPassword = "";
+        this.hashedPass = hashedPass;
     }
 
     public ServerClient(int ID, String name, String ipAddress, int port, boolean isConnected){
@@ -45,8 +52,8 @@ public class ServerClient {
         this.ID = ID;
         this.isConnected = isConnected;
         this.recipient = -1;
-        this.receivedUsername = null;
-        this.receivedPassword = null;
+        this.receivedUsername = "";
+        this.receivedPassword = "";
     }
 
     public int getID(){
@@ -65,8 +72,8 @@ public class ServerClient {
         return this.port;
     }
 
-    public PublicKey getPublickey() {
-        return this.publickey;
+    public String getHashedPass(){
+        return hashedPass;
     }
 
     public int getRecipient(){
@@ -77,9 +84,6 @@ public class ServerClient {
         return this.isConnected;
     }
 
-    public void setPublickey(PublicKey publickey) {
-        this.publickey = publickey;
-    }
 
     public void setRecipient(int recipient) {
         this.recipient = recipient;
@@ -102,8 +106,26 @@ public class ServerClient {
         return this.receivedPassword;
     }
 
-    public SecretKeySpec getAESkey(){
-        return this.AESkey;
+    public void setAddress(InetAddress ipAddress){
+        this.ipAddress = ipAddress;
+    }
+
+    public void setPort(int port){
+        this.port = port;
+    }
+
+    public void setIsConnected(boolean isConnected){
+        this.isConnected = isConnected;
+    }
+
+    public void disconnectClient(){
+        this.ipAddress = null;
+        this.port = -1;
+        this.isConnected = false;
+        this.receivedPassword = null;
+        this.receivedUsername = null;
+        this.recipient = -1;
+        this.key = null;
     }
 
     public byte[] decryptByteAES(byte[] in){

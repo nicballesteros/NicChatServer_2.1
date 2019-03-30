@@ -52,7 +52,7 @@ public class ServerMain {
         Connection conn = DriverManager.getConnection(url, "javaserver"/*"serveraccess"*/, "u4tOEoxL"/*"@mKkubjMYbc96RVMR"*/); //u4tOEoxL
         Statement stmt = conn.createStatement();
 
-        String strSelect = "select id, name from clientuserandpass";
+        String strSelect = "select id, name, pass from clientuserandpass";
 
         ResultSet rset = stmt.executeQuery(strSelect);
 
@@ -61,8 +61,9 @@ public class ServerMain {
 
             int id = rset.getInt("id");
             String name = rset.getString("name");
+            String pass = rset.getString("pass");
 
-            ServerClient c = new ServerClient(id, name);
+            ServerClient c = new ServerClient(id, name, pass);
             clients.add(c);
             ++rowCount;
         }
