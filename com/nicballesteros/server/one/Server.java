@@ -97,20 +97,20 @@ public class Server implements Runnable{
         client.disconnectClient();
     }
 
-    private void saveMessageToDatabase(String msg, ServerClient from, ServerClient to){
-        try(Connection conn = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/clients?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC",
-                "javaserver",
-                "u4tOEoxL");
-            Statement stmt = conn.createStatement()){
-            String strSelect = "insert into messages values (" + from.getID() + "," + to.getID() + "," + msg + ")";
-
-            stmt.executeUpdate(strSelect);
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+//    private void saveMessageToDatabase(String msg, ServerClient from, ServerClient to){
+//        try(Connection conn = DriverManager.getConnection(
+//                "jdbc:mysql://localhost:3306/clients?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC",
+//                "javaserver",
+//                "u4tOEoxL");
+//            Statement stmt = conn.createStatement()){
+//            String strSelect = "insert into messages values (" + from.getID() + "," + to.getID() + "," + msg + ")";
+//
+//            stmt.executeUpdate(strSelect);
+//        }
+//        catch(Exception e){
+//            e.printStackTrace();
+//        }
+//    }
 
     private void saveNewClientCredsToDatabase(int id, String username, String password){
         String url = "jdbc:mysql://localhost:3306/clients?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
@@ -137,29 +137,29 @@ public class Server implements Runnable{
         }
     }
 
-    private String getStoredHashedPassword(ServerClient client){
-        String url = "jdbc:mysql://localhost:3306/clients?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
-        String mysqlUsername = "javaserver";
-        String mysqlPassword = "u4tOEoxL";
-
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(url, "javaserver"/*"serveraccess"*/, "u4tOEoxL"/*"@mKkubjMYbc96RVMR"*/); //u4tOEoxL
-            Statement stmt = conn.createStatement();
-
-            String strSelect = "select pass from clientuserandpass where id = " + client.getID() + ";";
-
-            ResultSet rset = stmt.executeQuery(strSelect);
-
-            if(rset.next()) {
-                return rset.getString("pass");
-            }
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-        return null;
-    }
+//    private String getStoredHashedPassword(ServerClient client){
+//        String url = "jdbc:mysql://localhost:3306/clients?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+//        String mysqlUsername = "javaserver";
+//        String mysqlPassword = "u4tOEoxL";
+//
+//        try {
+//            Class.forName("com.mysql.cj.jdbc.Driver");
+//            Connection conn = DriverManager.getConnection(url, "javaserver"/*"serveraccess"*/, "u4tOEoxL"/*"@mKkubjMYbc96RVMR"*/); //u4tOEoxL
+//            Statement stmt = conn.createStatement();
+//
+//            String strSelect = "select pass from clientuserandpass where id = " + client.getID() + ";";
+//
+//            ResultSet rset = stmt.executeQuery(strSelect);
+//
+//            if(rset.next()) {
+//                return rset.getString("pass");
+//            }
+//        }
+//        catch(Exception e){
+//            e.printStackTrace();
+//        }
+//        return null;
+//    }
 
     //    private void loadOldMessagesFromDatabase(int from, int to){
 //        from = clients.get(from).getID();
@@ -252,7 +252,7 @@ public class Server implements Runnable{
     private void whichFormOfEncryption(DatagramPacket packet){
         byte[] data = packet.getData();
         byte encryptionType = data[0];
-
+        //Cuts off the trailing zeros at the end. The byte[] will have a 75 at the end of the [] to signify the end and where to cut off the line
         int cutOff = 0;
         for(int j = data.length - 1; j > 0; j--){
             if(data[j] == (byte)75){
@@ -382,6 +382,7 @@ public class Server implements Runnable{
             String password = Base64.encodeBase64String(in);
             System.out.println("Password Hash");
             currentClient.setReceivedPassword(password);
+            currentClient.setHashedPass(password);
         }
         else if(dataType == (byte)102){ //data is an AES key
             System.out.println("Set AES key");
@@ -399,7 +400,9 @@ public class Server implements Runnable{
 
             System.out.println("Sent to the database");
             sendConfirmationCode(54321, currentClient); //54321 signals the user was made
-
+            usersLoggingOn.remove(currentClient);
+            clients.add(currentClient);
+            currentClient.setName();
             //disconnectNewUser(currentClient);
         }
     }
@@ -410,54 +413,56 @@ public class Server implements Runnable{
         byte dataType = in[0];
         in = Arrays.copyOfRange(in, 1, in.length); //cut off the data type byte
 
-        if(!currentClient.getIsConnected()){ //client is not connected
-            if(dataType == (byte)100){ //data is a username
-                String username = new String(in);
-                System.out.println("Username: " + username);
-                currentClient.setReceivedUsername(username);
-                checkCreds(currentClient);
+         //client is not connected
+        if(dataType == (byte)100){ //data is a username
+            String username = new String(in);
+            System.out.println("Username: " + username);
+            currentClient.setReceivedUsername(username);
+            if(checkCreds(currentClient)){
+                usersLoggingOn.remove(currentClient);
             }
-            else if(dataType == (byte)101){ //data is a password hash
-                String password = Base64.encodeBase64String(in);
+        }
+        else if(dataType == (byte)101){ //data is a password hash
+            String password = Base64.encodeBase64String(in);
+            if(password.equals(currentClient.getHashedPass())){
+                System.out.print("Password Hash: ");
                 System.out.println(password);
-                if(password.equals(currentClient.getHashedPass())){
-                    currentClient.setReceivedPassword(password);
-                    System.out.println("Password Hash: ");
-                    sendConfirmationCode(34251, currentClient);
-                    checkCreds(currentClient);
-                }
-                else{
-                   // System.out.println("falseAlarm");
+
+                currentClient.setReceivedPassword(password);
+
+                sendConfirmationCode(34251, currentClient);
+                if(checkCreds(currentClient)){
+                    usersLoggingOn.remove(currentClient);
                 }
             }
-            else if(dataType == (byte)102){ //data is an aes key
-                currentClient.setAESkey(in); //TODO check this is valid
-                sendConfirmationCode(24242, currentClient);
-            }
             else{
-                System.out.println("Error in not connected handleRegisteredUser");
-                sendErrorSignal(currentClient.getAddress(), currentClient.getPort());
+               // System.out.println("falseAlarm");
             }
         }
-        else{ //client is connected
-            if(dataType == (byte)103){ //data is a recipient
-                ByteBuffer wrapped = ByteBuffer.wrap(in);
-
-                currentClient.setRecipient(wrapped.getInt()); //in should be 4 bytes
-            }
-            else if(dataType == (byte)104){ //data is a message
-                //check if the recipient is filled
-            }
-            else if(dataType == (byte)105){ //data is a request for history of a certain person
-
-            }
-            else if(dataType == (byte)106){ //data is a request for the a list of clients
-
-            }
-            else{
-                System.out.println("Error in the connected handleRegisteredUser");
-            }
+        else if(dataType == (byte)102){ //data is an aes key
+            currentClient.setAESkey(in); //TODO check this is valid
+            sendConfirmationCode(24242, currentClient);
         }
+        //CONNECTED FROM THIS POINT ON
+        else if(dataType == (byte)103 && currentClient.getIsConnected()){ //data is a recipient
+            ByteBuffer wrapped = ByteBuffer.wrap(in);
+
+            currentClient.setRecipient(wrapped.getInt()); //in should be 4 bytes
+        }
+        else if(dataType == (byte)104 && currentClient.getIsConnected()){ //data is a message
+            //check if the recipient is filled
+        }
+        else if(dataType == (byte)105 && currentClient.getIsConnected()){ //data is a request for history of a certain person
+
+        }
+        else if(dataType == (byte)106 && currentClient.getIsConnected()){ //data is a request for the a list of clients
+
+        }
+        else{
+            System.out.println("Error in handleRegisteredUser");
+            sendErrorSignal(currentClient.getAddress(), currentClient.getPort());
+        }
+
     }
 
     private boolean checkCreds(ServerClient client){

@@ -141,6 +141,10 @@ public class ServerClient {
         return null;
     }
 
+    public void setName(){
+        this.name = this.receivedUsername;
+    }
+
     public byte[] encrypteByteAES(byte[] in){
         try{
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
@@ -154,7 +158,7 @@ public class ServerClient {
     }
 
     public boolean enteredCreds(){
-        if(this.receivedPassword != null && this.receivedUsername != null){
+        if(!this.receivedPassword.equals("") && !this.receivedUsername.equals("")){
             return true;
         }
         return false;
@@ -162,5 +166,9 @@ public class ServerClient {
 
     public void setAESkey(byte[] data){
         AESkey = new SecretKeySpec(data, "AES");
+    }
+
+    public void setHashedPass(String hashedPass) {
+        this.hashedPass = hashedPass;
     }
 }
