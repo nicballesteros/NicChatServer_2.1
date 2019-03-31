@@ -68,7 +68,37 @@ public class ServerMain {
             ++rowCount;
         }
         System.out.println("rows: " + rowCount);
+        loadAcquaintances();
         return rowCount + 1;
+    }
+
+    private void loadAcquaintances(){
+        String url = "jdbc:mysql://localhost:3306/clients?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+        String mysqlUsername = "javaserver";
+        String mysqlPassword = "u4tOEoxL";
+
+        for(ServerClient client : clients){
+            try{
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                Connection conn = DriverManager.getConnection(url, mysqlUsername, mysqlPassword);
+                System.out.println("Connected to clients database successfully");
+
+                Statement stmt = conn.createStatement();
+
+                String sql = "SELECT * FROM " + client.getName() + ";";
+
+                ResultSet rset = stmt.executeQuery(sql);
+                while(rset.next()){
+                    int id = rset.getInt("id");
+                    client.addAcquaintance(id);
+                }
+            }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        System.out.println("Loaded acquaintances");
+
     }
 
     private void generateKeys() {

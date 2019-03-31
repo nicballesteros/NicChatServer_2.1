@@ -2,9 +2,14 @@ package com.nicballesteros.server.one;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import java.lang.reflect.Array;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.commons.codec.binary.Base64;
 
 
@@ -28,6 +33,8 @@ public class ServerClient {
 
     private String hashedPass;
 
+    private List<Integer> acquaintedClients;
+
     //TODO change the constructor so that it accepts an InetAddress instead of string
 
     public ServerClient(int ID, String name, String hashedPass){
@@ -38,6 +45,7 @@ public class ServerClient {
         this.receivedUsername = "";
         this.receivedPassword = "";
         this.hashedPass = hashedPass;
+        this.acquaintedClients = new ArrayList<>();
     }
 
     public ServerClient(int ID, String name, String ipAddress, int port, boolean isConnected){
@@ -54,6 +62,7 @@ public class ServerClient {
         this.recipient = -1;
         this.receivedUsername = "";
         this.receivedPassword = "";
+        this.acquaintedClients = new ArrayList<>();
     }
 
     public int getID(){
@@ -145,7 +154,7 @@ public class ServerClient {
         this.name = this.receivedUsername;
     }
 
-    public byte[] encrypteByteAES(byte[] in){
+    public byte[] encryptByteAES(byte[] in){
         try{
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
             cipher.init(Cipher.ENCRYPT_MODE, AESkey);
@@ -170,5 +179,22 @@ public class ServerClient {
 
     public void setHashedPass(String hashedPass) {
         this.hashedPass = hashedPass;
+    }
+
+    public List<Integer> getAcquainedClients(){
+        return acquaintedClients;
+    }
+
+    public void addAcquaintance(int idOfClient){
+        acquaintedClients.add(idOfClient);
+    }
+
+    public boolean doesAcquaintanceAlreadyExist(int id){
+        for(int a : acquaintedClients){
+            if(a == id){
+                return true;
+            }
+        }
+        return false;
     }
 }
