@@ -479,10 +479,20 @@ public class Server implements Runnable{
         else if(dataType == (byte)103 && currentClient.getIsConnected()){ //data is a recipient
             ByteBuffer wrapped = ByteBuffer.wrap(in);
 
-            currentClient.setRecipient(wrapped.getInt()); //in should be 4 bytes
+            int thisID = wrapped.getInt();
+
+            if(doesIDExist(thisID) != null){
+                currentClient.setRecipient(thisID); //in should be 4 bytes
+            }
         }
         else if(dataType == (byte)104 && currentClient.getIsConnected()){ //data is a message
-            //check if the recipient is filled
+            //if has recipient
+            if(currentClient.getRecipient() != -1 && currentClient.getRecipient() != currentClient.getID() && clients.get(currentClient.getRecipient() - 1).getIsConnected()){
+                ServerClient recipient = clients.get(currentClient.getRecipient() - 1);
+
+                sendSenderNameToUser(recipient, currentClient);
+                sendToUser(in, recipient, currentClient);
+            }
         }
         else if(dataType == (byte)105 && currentClient.getIsConnected()){ //data is a request for history of a certain acquaintance
 
@@ -633,9 +643,42 @@ public class Server implements Runnable{
         send.start();
     }
 
-    private void sendToUser(String message, int recipientIndex){
-        ServerClient recipient = clients.get(recipientIndex);
-        send(message.getBytes(), recipient.getAddress(), recipient.getPort());
+    private void sendToUser(byte[] message, ServerClient recipient, ServerClient from){
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ByteArrayOutputStream firstOut = new ByteArrayOutputStream();
+
+        byte[] byteArray = ByteBuffer.allocate(4).putInt(11111).array();
+        try{
+            firstOut.write(byteArray);
+            firstOut.write(message);
+
+            output.write((byte)101);
+            output.write(recipient.encryptByteAES(firstOut.toByteArray()));
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        send(output.toByteArray(), recipient.getAddress(), recipient.getPort());
+    }
+
+    private void sendSenderNameToUser(ServerClient recipient, ServerClient from){
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ByteArrayOutputStream firstOut = new ByteArrayOutputStream();
+
+        byte[] byteArray = ByteBuffer.allocate(4).putInt(22222).array();
+        try{
+            firstOut.write(byteArray);
+            firstOut.write(from.getName().getBytes());
+
+            output.write((byte)101);
+            output.write(recipient.encryptByteAES(firstOut.toByteArray()));
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        send(output.toByteArray(), recipient.getAddress(), recipient.getPort());
     }
 
     private void sendPublicKey(int id, InetAddress address, int port){
